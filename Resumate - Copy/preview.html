@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resume Preview - Resumate</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      margin: 0;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 1.5rem;
+    }
+
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    .buttons {
+      position: fixed;
+      top: 8rem;
+      right: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .buttons button {
+      background-color: #2c3e50;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .buttons button:hover {
+      background-color: gray;
+    }
+
+    #canvas-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 3rem;
+    }
+
+    @media print {
+      @page {
+        margin: 0;
+      }
+
+      body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      canvas {
+        visibility: visible;
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Resumate</h1>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="info.html">Resume</a>
+      <a href="selfintroinput.html">Cover Letter</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contact.html">Contact</a>
+      <a href="about.html">About</a>
+    </nav>
+  </header>
+
+  <div class="buttons">
+    <span style="margin-left: 1rem; font-weight: bold;">Choose Layout:</span>
+    <button onclick="setDesign('minimalist')">Minimalist</button>
+    <button onclick="setDesign('modern')">Modern</button>
+    <button onclick="setDesign('elegant')">Elegant</button>
+    <span style="margin-left: 1rem; font-weight: bold;">More Functions:</span>
+    <button onclick="saveToPDF()">Save as PDF</button>
+    <button onclick="window.print()">Print</button>
+  </div>
+
+  <div id="canvas-container"></div>
+
+  <script>
+    let resumeData;
+    let currentDesign = 'modern';
+    let photo;
+
+    function setup() {
+      const canvas = createCanvas(800, 1120);
+      canvas.parent('canvas-container');
+      noLoop();
+
+      const data = JSON.parse(localStorage.getItem('resumeData') || '{}');
+
+      resumeData = {
+        ...data,
+        education: (data.education || '').split(',').map(edu => edu.trim()),
+        experience: (data.experience || '').split(',').map(ex => ex.trim()),
+        certificate: (data.certificate || '').split(',').map(c => c.trim()),
+        award: (data.award || '').split(',').map(a => a.trim()),
+        extracurricular: (data.extracurricular || '').split(',').map(ca => ca.trim())
+      };
+
+      if (resumeData.photo) {
+        loadImage(resumeData.photo, img => {
+          photo = img;
+          redraw();
+        });
+      }
+    }
+
+    function draw() {
+      clear();
+      if (currentDesign === 'minimalist') drawMinimalist();
+      else if (currentDesign === 'elegant') drawElegant();
+      else drawModern();
+    }
+
+    function setDesign(design) {
+      currentDesign = design;
+      redraw();
+    }
+
+    function saveToPDF() {
+      const canvas = document.querySelector('canvas');
+      const imgData = canvas.toDataURL('image/png');
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'pt', [canvas.width, canvas.height]);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save('resume.pdf');
+    }
+
+    function drawModern() {
+  background(245);
+  let paperX = 0;
+  let paperY = 0;
+  let paperWidth = width;
+  let paperHeight = height + 100;
+
+  // 왼쪽 네이비 컬럼
+  noStroke();
+  fill(50, 60, 100);
+  rect(paperX, paperY, 150, paperHeight);
+
+  // 오른쪽 흰 배경
+  fill(255);
+  rect(paperX + 150, paperY, paperWidth - 150, paperHeight);
+
+  // 상단 헤더 영역
+  fill(240, 240, 255);
+  rect(paperX + 150, paperY, paperWidth - 150, 100);
+
+  // 헤더 가운데 정렬 복원
+  fill(50, 60, 100);
+  textAlign(CENTER, TOP);
+  textSize(24);
+  text(resumeData.fullName || '', paperX + 450, paperY + 20);
+
+  textSize(15);
+  text(`${resumeData.jobTitle || ''} | ${resumeData.address || ''}`, paperX + 450, paperY + 50);
+  text(`${resumeData.email || ''} | ${resumeData.phone || ''}`, paperX + 450, paperY + 70);
+
+  // 본문 영역 시작
+  textAlign(LEFT, TOP);
+  textSize(13);
+  let headingColor = color(80, 40, 120);
+  let textColor = color(30);
+  let contentX = paperX + 170;
+  let y = paperY + 110;
+
+  let textRightMargin = 160; // 사진 영역 확보
+  let sectionWidth = paperWidth - contentX - textRightMargin;
+
+  // 사진 먼저 출력 (Objective & Profile 오른쪽 끝)
+  let photoW = 130;
+  let photoH = 140;
+  let photoX = paperWidth - photoW - 20;
+  let photoY = y + 10;
+
+  if (photo) {
+    stroke(50, 60, 100);
+    strokeWeight(2);
+    noFill();
+    rect(photoX - 2, photoY - 2, photoW + 4, photoH + 4); // 테두리
+
+    noStroke();
+    image(photo, photoX, photoY, photoW, photoH);
+  }
+
+  // Objective
+  fill(headingColor); textSize(18);
+  text("Objective", contentX, y + 10);
+  fill(textColor); textSize(13);
+  text(resumeData.objective || '', contentX, y + 20, sectionWidth, 80);
+  y += 90
+
+  // Profile
+  fill(headingColor); textSize(18);
+  text("Profile", contentX, y + 10);
+  fill(textColor); textSize(13);
+  text(resumeData.profile || '', contentX, y + 20, sectionWidth, 100);
+  y += 110;
+
+  // Education
+  fill(headingColor); textSize(18);
+  text("Education", contentX, y);
+  fill(textColor); textSize(13);
+  for (let i = 0; i < resumeData.education.length; i++) {
+    fill(50, 60, 100); ellipse(contentX, y + 25 + i * 15, 6, 6);
+    fill(textColor); text(resumeData.education[i], contentX + 15, y + 20 + i * 15);
+  }
+  y += 100;
+
+  // Experience
+  fill(headingColor); textSize(18);
+  text("Experience", contentX, y);
+  fill(textColor); textSize(13);
+  for (let i = 0; i < resumeData.experience.length; i++) {
+    fill(50, 60, 100); ellipse(contentX, y + 25 + i * 15, 6, 6);
+    fill(textColor); text(resumeData.experience[i], contentX + 15, y + 20 + i * 15);
+  }
+  y += 120;
+
+  // Skills & More
+  fill(headingColor); textSize(18);
+  text("Skills & More", contentX, y);
+  y += 60;
+
+  fill(headingColor); textSize(18);
+  text("Certificate", contentX, y);
+  fill(textColor); textSize(13);
+  for (let i = 0; i < resumeData.certificate.length; i++) {
+    fill(100, 200, 100); ellipse(contentX, y + 25 + i * 15, 6, 6);
+    fill(textColor); text(resumeData.certificate[i], contentX + 15, y + 20 + i * 15);
+  }
+
+  fill(headingColor); textSize(18);
+  text("Award", contentX + 180, y);
+  fill(textColor); textSize(13);
+  for (let i = 0; i < resumeData.award.length; i++) {
+    fill(255, 150, 150); ellipse(contentX + 180, y + 25 + i * 15, 6, 6);
+    fill(textColor); text(resumeData.award[i], contentX + 195, y + 20 + i * 15);
+  }
+
+  fill(headingColor); textSize(18);
+  text("Extra Curricular", contentX + 360, y);
+  fill(textColor); textSize(13);
+  for (let i = 0; i < resumeData.extracurricular.length; i++) {
+    fill(255, 150, 150); ellipse(contentX + 360, y + 25 + i * 15, 6, 6);
+    fill(textColor); text(resumeData.extracurricular[i], contentX + 375, y + 20 + i * 15);
+  }
+}
+
+
+// Function to draw arrows
+function drawArrow(x, y) {
+  push();
+  stroke(0);
+  strokeWeight(2);
+  line(x, y, x + 20, y + 20);
+  line(x + 20, y + 20, x + 40, y);
+  pop();
+}
+
+function drawMinimalist() {
+  background(255);
+
+  let paperX = 0;
+  let paperY = 0;
+  let paperWidth = width;
+  let paperHeight = height + 50;
+
+  // Draw white background
+  fill(255);
+  noStroke();
+  rect(paperX, paperY, paperWidth, paperHeight);
+
+  // Load and draw profile photo on left
+  loadImage(resumeData.photo, (img) => {
+  let imgX = paperX + 60;
+  let imgY = paperY + 60;
+  let imgSize = 100;
+
+  // 이미지
+  image(img, imgX, imgY, imgSize, imgSize);
+
+  // 사각형 테두리
+  stroke(0);       // 회색 테두리
+  strokeWeight(2);   // 두께
+  noFill();
+  rect(imgX, imgY, imgSize, imgSize, 0); // 모서리를 약간 둥글게 (원하면 0으로 바꿔도 됨)
+});
+  
+
+  // Draw name and contact info to the right of photo
+  fill(0);
+  textAlign(LEFT, TOP);
+  textSize(24);
+  text(resumeData.fullName, paperX + 180, paperY + 60);
+
+  textSize(14);
+  text(resumeData.jobTitle + " | " + resumeData.address, paperX + 180, paperY + 95);
+  text(resumeData.email + " | " + resumeData.phone, paperX + 180, paperY + 115);
+
+  // Horizontal line separator
+  stroke(200);
+  line(paperX + 60, paperY + 180, paperX + paperWidth - 60, paperY + 180);
+
+  noStroke();
+  textAlign(LEFT, TOP);
+  fill(50);
+
+  // Objective
+  textSize(18);
+  text("Objective", paperX + 60, paperY + 200);
+  textSize(13);
+  text(resumeData.objective, paperX + 60, paperY + 220, paperWidth - 120, 50);
+
+  // Profile
+  textSize(18);
+  text("Profile", paperX + 60, paperY + 290);
+  textSize(13);
+  text(resumeData.profile, paperX + 60, paperY + 310, paperWidth - 120, 70);
+
+  // Education
+  textSize(18);
+  text("Education", paperX + 60, paperY + 400);
+  textSize(13);
+  for (let i = 0; i < resumeData.education.length; i++) {
+    fill(0); ellipse(paperX + 60, paperY + 425 + i * 15, 6, 6);
+    text(resumeData.education[i], paperX + 75, paperY + 420 + i * 15);
+  }
+
+  // Experience
+  textSize(18);
+  text("Experience", paperX + 60, paperY + 540);
+  textSize(13);
+  for (let i = 0; i < resumeData.experience.length; i++) {
+    fill(0); ellipse(paperX + 60, paperY + 565 + i * 15, 6, 6);
+    text(resumeData.experience[i], paperX + 75, paperY + 560 + i * 15, paperWidth - 120, 80);
+  }
+
+  // Certificate
+  textSize(18);
+  text("Certificate", paperX + 60, paperY + 680);
+  textSize(13);
+  for (let i = 0; i < resumeData.certificate.length; i++) {
+    fill(0); ellipse(paperX + 60, paperY + 705 + i * 15, 6, 6);
+    text(resumeData.certificate[i], paperX + 75, paperY + 700 + i * 15);
+  }
+
+  // Award
+  textSize(18);
+  text("Award", paperX + 300, paperY + 680);
+  textSize(13);
+  for (let i = 0; i < resumeData.award.length; i++) {
+    fill(0); ellipse(paperX + 300, paperY + 705 + i * 15, 6, 6);
+    text(resumeData.award[i], paperX + 315, paperY + 700 + i * 15);
+  }
+
+  // Extra Curricular
+  textSize(18);
+  text("Extra Curricular", paperX + 480, paperY + 680);
+  textSize(13);
+  for (let i = 0; i < resumeData.extracurricular.length; i++) {
+    ellipse(paperX + 480, paperY + 705 + i * 15, 6, 6);
+    text(resumeData.extracurricular[i], paperX + 495, paperY + 700 + i * 15);
+  }
+}
+
+    function drawElegant() {
+  background(255); // white background
+  let paperX = 0;
+  let paperY = 0;
+  let paperWidth = width;
+  let paperHeight = height-100;
+
+  noStroke();
+  fill('black'); // dark gray sidebar
+  rect(paperX, paperY, 150, paperHeight);
+
+  fill(255); // main white background
+  rect(paperX + 150, paperY, paperWidth - 150, paperHeight);
+
+  fill(240); // light gray header section
+  rect(paperX + 150, paperY, paperWidth - 150, 100);
+
+  fill(30); // black text
+  textAlign(CENTER, TOP);
+  textSize(24);
+  text(resumeData.fullName || '', paperX + 450, paperY + 20);
+
+  textSize(15);
+  text(`${resumeData.jobTitle || ''} | ${resumeData.address || ''}`, paperX + 450, paperY + 50);
+  text(`${resumeData.email || ''} | ${resumeData.phone || ''}`, paperX + 450, paperY + 70);
+
+  textAlign(LEFT, TOP);
+  textSize(15);
+  let headingColor = color(60);   // dark gray for headings
+  let textColor = color(30);      // black for body text
+  let contentX = paperX + 170;
+  let y = paperY + 110;
+
+  let photoX = contentX;
+  let photoY = y;
+  let photoW = 135;
+  let photoH = 150;
+
+  if (photo) {
+    // 사진 테두리 추가
+    stroke(0);
+    strokeWeight(2);
+    noFill();
+    rect(photoX - 2, photoY - 2, photoW + 4, photoH + 4);
+
+    // 사진 출력
+    noStroke();
+    image(photo, photoX, photoY, photoW, photoH);
+  }
+
+  let textX = photoX + photoW + 20;
+  let sectionWidth = paperWidth - textX - 30;
+
+        fill(headingColor); textSize(18);
+        text("Objective", textX, y);
+        fill(textColor); textSize(13);
+        text(resumeData.objective || '', textX, y + 20, sectionWidth, 60);
+        y += 90;
+
+        fill(headingColor); textSize(18);
+        text("Profile", textX, y);
+        fill(textColor); textSize(13);
+        text(resumeData.profile || '', textX, y + 20, sectionWidth, 70);
+        y = max(y + 100, photoY + photoH + 20);
+
+        fill(headingColor); textSize(18);
+        text("Education", contentX, y);
+        fill(textColor); textSize(13);
+        for (let i = 0; i < resumeData.education.length; i++) {
+        fill(50, 60, 100); ellipse(contentX , y + 25 + i * 15, 6, 6);
+        fill(textColor); text(resumeData.education[i], contentX + 15, y + 20 + i * 15);
+        }
+        y += 100;
+
+      fill(headingColor); textSize(18);
+      text("Experience", contentX, y);
+      fill(textColor); textSize(13);
+      for (let i = 0; i < resumeData.experience.length; i++) {
+        fill(100); ellipse(contentX , y + 25 + i * 15, 6, 6);
+        fill(textColor); text(resumeData.experience[i], contentX + 15, y + 20 + i * 15);
+      }
+      y += 120;
+
+      fill(headingColor); textSize(18);
+      text("Skills & More", contentX, y);
+      y += 60;  // 제목 공간 확보만 하고 내려감 
+
+      fill(headingColor); textSize(18);
+      text("Certificate", contentX , y);
+      fill(textColor); textSize(13);
+      for (let i = 0; i < resumeData.certificate.length; i++) {
+        fill(100); ellipse(contentX , y + 25 + i * 15, 6, 6);
+        fill(textColor); text(resumeData.certificate[i], contentX + 15, y + 20 + i * 15);
+      }
+
+      fill(headingColor); textSize(18);
+      text("Award", contentX + 180, y);
+      fill(textColor); textSize(13);
+      for (let i = 0; i < resumeData.award.length; i++) {
+        fill(100); ellipse(contentX + 180, y + 25 + i * 15, 6, 6);
+        fill(textColor); text(resumeData.award[i], contentX + 195, y + 20 + i * 15);
+      }
+
+      fill(headingColor); textSize(18);
+      text("Extra Curricular", contentX + 360, y);
+      fill(textColor); textSize(13);
+      for (let i = 0; i < resumeData.extracurricular.length; i++) {
+        fill(100); ellipse(contentX + 360, y + 25 + i * 15, 6, 6);
+        fill(textColor); text(resumeData.extracurricular[i], contentX + 375, y + 20 + i * 15);
+      }
+    }
+
+  </script>
+
+</body>
+</html>
